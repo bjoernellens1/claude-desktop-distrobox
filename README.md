@@ -26,10 +26,16 @@ distrobox-enter claude-desktop -- claude-desktop
 ## What's shared with the container by default
 
 - Your `$HOME` directory (distrobox default) — needed for Claude Desktop's local file features.
-- The X11 socket and `$XDG_RUNTIME_DIR` (covers Wayland) — distrobox defaults.
-- D-Bus — distrobox default.
-- PulseAudio/PipeWire sockets — for notification sounds and any audio features.
-- `/dev/dri` (and NVIDIA GPU support when present) — for hardware-accelerated rendering.
+- The X11 socket and `$XDG_RUNTIME_DIR` (covers Wayland, PulseAudio/PipeWire, and D-Bus session bus) — distrobox defaults.
+- `/dev` (covers `/dev/dri`, and NVIDIA GPU support when present via `nvidia=true`) — for hardware-accelerated rendering.
+
+## Browser login (Google sign-in, OAuth popups)
+
+Electron apps like Claude Desktop open sign-in popups via `xdg-open`, which distrobox does **not** forward to the host by default — and this container deliberately has no browser of its own. Instead, the image ships a small `xdg-open` wrapper that forwards to your host's real `xdg-open` (and therefore your host's default browser) via `distrobox-host-exec`. You shouldn't need to do anything — Google/OAuth login popups should just open in your normal browser.
+
+## Development tools
+
+The image includes `git`, `build-essential`, `python3`/`pip3`, `openssh-client`, `vim`, `wget`, `unzip`, `jq`, and `ripgrep`, so you can use Claude Desktop's local dev features (e.g. Claude Code sessions, which require `git`) and do general development work inside the container without installing anything extra.
 
 ## Unsafe mode
 
@@ -59,7 +65,9 @@ Builds the image from the included `Containerfile` instead of pulling `ghcr.io/b
 
 - **No sound**: confirm `$XDG_RUNTIME_DIR/pulse` or `$XDG_RUNTIME_DIR/pipewire-0` exists on the host before running `install.sh`.
 - **No GPU acceleration**: confirm `/dev/dri` exists on the host (`ls /dev/dri`). For NVIDIA, ensure the host NVIDIA driver/container toolkit is set up per distrobox's NVIDIA docs.
-- **App menu entry missing**: re-run the export manually: `distrobox-enter claude-desktop -- distrobox-export --app claude-desktop`.
+- **App menu entry missing**: re-run the export manually: `distrobox-enter claude-desktop -- distrobox-export --app claude-desktop` (use `claude-desktop-unsafe` instead of `claude-desktop` if you installed with `--unsafe`).
+- **Login/OAuth popup doesn't open a browser**: confirm the fix landed by running `distrobox-enter claude-desktop -- xdg-open https://example.com` — it should open a tab in your host's default browser. If not, re-pull/rebuild the image (`./install.sh` or `./install.sh --local-build`) to pick up the latest `Containerfile`.
+- **Desktop feels sluggish while Claude Desktop is open**: this is normal GPU contention, not a distrobox misconfiguration — distrobox passes `/dev/dri` straight through with no extra proxy layer, so Claude Desktop's hardware-accelerated Electron renderer and your desktop compositor are simply sharing one GPU, the same as running any GPU-accelerated browser. Startup can also briefly stall (~25s) on a harmless `systemd-run` sandboxing timeout inside the container before the window appears.
 
 ## License
 
