@@ -4,6 +4,8 @@ set -euo pipefail
 UNSAFE=0
 LOCAL_BUILD=0
 
+trap 'rm -f "${TMP_MANIFEST:-}"' EXIT
+
 for arg in "$@"; do
     case "$arg" in
         --unsafe) UNSAFE=1 ;;
@@ -64,7 +66,12 @@ fi
 
 if [[ "$LOCAL_BUILD" == "1" ]]; then
     echo "Building image locally from Containerfile..."
-    podman build -t ghcr.io/bjoernellens1/claude-desktop-distrobox:latest -f "$SCRIPT_DIR/Containerfile" "$SCRIPT_DIR"
+    podman build -t claude-desktop-distrobox:local -f "$SCRIPT_DIR/Containerfile" "$SCRIPT_DIR"
+    LOCAL_TAG="claude-desktop-distrobox:local"
+
+    TMP_MANIFEST="$(mktemp --suffix=.ini)"
+    sed -e "s|^image=.*|image=$LOCAL_TAG|" -e "s|^pull=.*|pull=false|" "$MANIFEST" > "$TMP_MANIFEST"
+    MANIFEST="$TMP_MANIFEST"
 fi
 
 distrobox assemble create --file "$MANIFEST"
