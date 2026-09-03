@@ -53,11 +53,13 @@ else
 fi
 
 MANIFEST="$SCRIPT_DIR/distrobox.ini"
+CONTAINER_NAME="claude-desktop"
 if [[ "$UNSAFE" == "1" ]]; then
     echo "UNSAFE MODE: mounting additional host paths (/mnt, /media, /run/media, /) and all devices." >&2
     echo "This significantly reduces container isolation. Press Ctrl+C within 5 seconds to abort." >&2
     sleep 5
     MANIFEST="$SCRIPT_DIR/distrobox-unsafe.ini"
+    CONTAINER_NAME="claude-desktop-unsafe"
 fi
 
 if [[ "$LOCAL_BUILD" == "1" ]]; then
@@ -68,4 +70,4 @@ fi
 distrobox assemble create --file "$MANIFEST"
 
 echo "Done. Claude Desktop should now appear in your application menu."
-echo "You can also launch it with: distrobox-enter claude-desktop -- claude-desktop"
+echo "You can also launch it with: distrobox-enter $CONTAINER_NAME -- claude-desktop"
